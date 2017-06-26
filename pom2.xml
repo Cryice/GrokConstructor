@@ -1,0 +1,208 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">  
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>net.stoerr</groupId>
+    <artifactId>GrokConstructor</artifactId>
+    <packaging>war</packaging>
+    <version>0.1.0-SNAPSHOT</version>
+    <description>Semi-automatic incremental construction and debugging of regular expressions for grok to parse logfiles
+        for logstash http://logstash.net/ . Deployed at http://grokconstructor.appspot.com/ .
+    </description>
+
+    <properties>
+        <appengine.app.version>7</appengine.app.version>
+        <appengine.target.version>1.9.38</appengine.target.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <scala.version>2.11.7</scala.version>
+        <scala.binary.version>2.11</scala.binary.version>
+        <maven.compiler.source>7</maven.compiler.source>
+        <maven.compiler.target>7</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- Check for newer dependencies with mvn versions:display-dependency-updates -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>2.4</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <!-- https://github.com/jruby/joni -->
+            <groupId>org.jruby.joni</groupId>
+            <artifactId>joni</artifactId>
+            <version>2.1.10</version>
+        </dependency>
+        <dependency>
+            <!-- https://mvnrepository.com/artifact/org.scala-lang/scala-library -->
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+        <dependency>
+            <!-- https://mvnrepository.com/artifact/org.scala-lang.modules/scala-xml_2.11 -->
+            <groupId>org.scala-lang.modules</groupId>
+            <artifactId>scala-xml_2.11</artifactId>
+            <version>1.0.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-native_2.11</artifactId>
+            <version>3.4.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.appengine</groupId>
+            <artifactId>appengine-api-1.0-sdk</artifactId>
+            <version>${appengine.target.version}</version>
+        </dependency>
+
+        <dependency>
+            <!-- https://mvnrepository.com/artifact/org.scalatest/scalatest_2.11 -->
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.11</artifactId>
+            <version>2.2.6</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- https://mvnrepository.com/artifact/org.mockito/mockito-core -->
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>1.10.19</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- https://mvnrepository.com/artifact/log4j/log4j -->
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.samaxes.maven</groupId>
+                <artifactId>minify-maven-plugin</artifactId>
+                <version>1.7.4</version>
+                <executions>
+                    <execution>
+                        <id>default-minify</id>
+                        <phase>process-resources</phase>
+                        <!-- When omitted defaults to 'process-resources' -->
+                        <configuration>
+                            <charset>UTF-8</charset>
+                            <!-- <cssSourceDir>src/main/webapp/css</cssSourceDir> -->
+                            <cssSourceFiles>
+                                <cssSourceFile>fonts.css</cssSourceFile>
+                                <cssSourceFile>../yaml/core/base.css</cssSourceFile>
+                                <cssSourceFile>../yaml/navigation/hlist.css</cssSourceFile>
+                                <cssSourceFile>../yaml/forms/gray-theme.css</cssSourceFile>
+                                <cssSourceFile>../yaml/screen/typography.css</cssSourceFile>
+                                <cssSourceFile>../yaml/screen/screen-FULLPAGE-layout.css</cssSourceFile>
+                            </cssSourceFiles>
+                            <cssFinalFile>combinedstyles.css</cssFinalFile>
+                            <!-- <jsSourceDir>js</jsSourceDir>
+                            <jsSourceFiles>
+                                <jsSourceFile>file-1.js</jsSourceFile>
+                            </jsSourceFiles>
+                            <jsFinalFile>script.js</jsFinalFile>
+                            <jsEngine>CLOSURE</jsEngine> -->
+                        </configuration>
+                        <goals>
+                            <goal>minify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <archiveClasses>true</archiveClasses>
+                    <webResources>
+                        <!-- in order to interpolate version from pom into appengine-web.xml -->
+                        <resource>
+                            <directory>${basedir}/src/main/webapp/WEB-INF</directory>
+                            <filtering>true</filtering>
+                            <targetPath>WEB-INF</targetPath>
+                        </resource>
+                    </webResources>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- http://davidb.github.io/scala-maven-plugin/ ; continuous compilation with scala:cc! -->
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.2.2</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                	<!-- <scalaCompatVersion>${scala.binary.version}</scalaCompatVersion>
+                	<scalaVersion>${scala.version}</scalaVersion> -->
+                    <sourceDir>src/main/scala</sourceDir>
+                    <testSourceDir>src/test/scala</testSourceDir>
+                    <encoding>UTF-8</encoding>
+                    <jvmArgs>
+                        <jvmArg>-Xms64m</jvmArg>
+                        <jvmArg>-Xmx1024m</jvmArg>
+                    </jvmArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- see https://cloud.google.com/appengine/docs/java/tools/maven -->
+                <groupId>com.google.appengine</groupId>
+                <artifactId>appengine-maven-plugin</artifactId>
+                <version>${appengine.target.version}</version>
+                <configuration>
+                    <fullScanSeconds>5</fullScanSeconds>
+                    <server>preview.appengine.google.com</server>
+                    <address>0.0.0.0</address>
+                    <port>9090</port>
+                    <jvmFlags>
+                        <jvmFlag>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005</jvmFlag>
+                        <jvmFlag>-Dcom.sun.management.jmxremote</jvmFlag>
+                        <jvmFlag>-Dcom.sun.management.jmxremote.port=5006</jvmFlag>
+                        <jvmFlag>-Dcom.sun.management.jmxremote.ssl=false</jvmFlag>
+                        <jvmFlag>-Dcom.sun.management.jmxremote.authenticate=false</jvmFlag>
+                    </jvmFlags>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- see http://tomcat.apache.org/maven-plugin-2.0/tomcat7-maven-plugin/exec-war-mojo.html -->
+                <!-- see also http://tomcat.apache.org/maven-plugin-2.0-beta-1/executable-war-jar.html -->
+                <groupId>org.apache.tomcat.maven</groupId>
+                <artifactId>tomcat7-maven-plugin</artifactId>
+                <version>2.2</version>
+                <executions>
+                    <execution>
+                        <id>tomcat-run</id>
+                        <goals>
+                            <goal>exec-war-only</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <path>/</path>
+                            <finalName>${project.artifactId}-${project.version}-standalone.jar</finalName>
+                            <enableNaming>false</enableNaming>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
