@@ -38,3 +38,7 @@ Please be aware that this creates a directory .extract in the current directory 
 unpacked webapp. You can print additional arguments (such as ports, unpack location) with
 
 java -jar GrokConstructor-0.1.0-SNAPSHOT-standalone.jar -h
+
+### Run & Debug Executable With Eclipse
+
+mvn tomcat6:run
